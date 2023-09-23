@@ -1,38 +1,42 @@
-const request = require('supertest')
+const request = require('supertest');
 const app = require('../../app')
 
 describe('Test GET/launches', () => {
     test('It should respond with 200 success', async () => {
         const response = await request(app)
-            .get('launches')
+            .get('/launches')
             .expect('Content-Type', /json/)
-            .expect(200)
+        expect(response.statusCode).toBe(200)
 
     })
 })
+
+
 describe('Test POST /launch', () => {
+    const completeLauchData = {
+        mission: "Node js Developer",
+        rocket: "stay Strong ",
+        target: "Becoming a Node developer in this month",
+        launchDate: "22 september, 2028"
+
+    }
+    const LaunchDataWithInvalidData = {
+        mission: "Node js Developer",
+        rocket: "stay Strong ",
+        target: "Becoming a Node developer in this month",
+        launchDate: "Developer "
+
+    }
+
+    const launchDataWithOutLauchDate = {
+        mission: "Node js Developer",
+        rocket: "stay Strong ",
+        target: "Becoming a Node developer in this month",
+
+
+    }
+
     test('It should response with 201 created ', async () => {
-        const completeLauchData = {
-            mission: "Node js Developer",
-            rocket: "stay Strong ",
-            target: "Becoming a Node developer in this month",
-            launchDate: "22 september, 2028"
-
-        }
-        const LaunchDataWithInvalidData = {
-            mission: "Node js Developer",
-            rocket: "stay Strong ",
-            target: "Becoming a Node developer in this month",
-            launchDate: "Developer "
-
-        }
-        const launchDataWithOutLauchDate = {
-            mission: "Node js Developer",
-            rocket: "stay Strong ",
-            target: "Becoming a Node developer in this month",
-
-
-        }
         const response = await request(app)
             .post('/launches')
             .send(completeLauchData)
@@ -50,10 +54,13 @@ describe('Test POST /launch', () => {
             .expect('Content-Type', /json/)
             .expect(400)
 
-        expect(response.body).toStringEqual({
+        expect(response.body).toStrictEqual({
             error: "Missing required launch property"
         })
     })
+
+
+
     test('It should catch invalid dates', async () => {
         const response = await request(app)
             .post('/launches')
@@ -61,9 +68,8 @@ describe('Test POST /launch', () => {
             .expect('Content-Type', /json/)
             .expect(400)
 
-        expect(response.body).toStringEqual({
+        expect(response.body).toStrictEqual({
             error: "Invalid Date "
         })
-
     })
 })

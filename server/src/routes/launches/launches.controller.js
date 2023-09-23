@@ -1,13 +1,13 @@
 const {
-    launches,
+    getAllLaunches,
     existsLaunchWithId,
     addNewLaunches,
     abortedLaunchById
 } = require('../../models/lunches.model')
 
 
-const getAllLaunches = async (req, res) => {
-    return res.status(200).json(Array.from(launches.values()))
+const httpGetAllLaunches = async (req, res) => {
+    return res.status(200).json( await getAllLaunches())
 }
 
 function httpAddNewLaunch(req, res) {
@@ -40,7 +40,7 @@ const aborted =abortedLaunchById(launchId)
     return res.status(200).json(aborted)
 }
 module.exports = {
-    getAllLaunches,
+    httpGetAllLaunches,
     httpAbortLaunch,
     httpAddNewLaunch
 }
