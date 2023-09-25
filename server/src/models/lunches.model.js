@@ -1,6 +1,7 @@
 const launches = require('./launches.mongo.js')
 const planets = require('./planets.mongo.js')
 const Default_FlightNumber = 100
+const axios = require('axios')
 const launch = {
     flightNumber: 100,
     mission: "kepler mission",
@@ -16,17 +17,23 @@ saveLaunch(launch)
 
 async function existsLaunchWithId(launchId) {
 
-    return await launches.find({
-        flightNumber:launchId
+    return await launches.findOne({
+        flightNumber: launchId
     })
 }
 
 async function getLatestFlightNumber() {
     let latestFlightNumb = await launches.findOne({}).sort('-flightNumber')
     if (!latestFlightNumb) {
-        return (Default_FlightNumber)
+        return (Default_FlightNumber < "latest flightNumber Not found")
     }
     return latestFlightNumb.flightNumber
+}
+
+async function getAllLaunches() {
+    const latestLaunch = await launches.find({})
+    return latestLaunch
+
 }
 
 async function saveLaunch(launch) {
@@ -60,31 +67,85 @@ async function addNewLaunches(launch) {
 
 
 async function abortedLaunchById(launchId) {
+
     try {
-        console.log(launchId)
-        const aborted = await launches.updateOne(
-          { flightNumber: launchId },
-          { upcoming: false, success: false }
-        );
-      
-        return aborted.ok === 1 && aborted.nModified === 1;
-      } catch (error) {
+        const aborted = await launches.updateOne({
+            flightNumber: launchId
+        }, {
+            $set: {
+                success: false,
+                upcoming: false
+
+            }
+        })
+
+        if (aborted.modifiedCount === 1) {
+            return {
+                success: true,
+                message: 'Launch updated successfully'
+            };
+        } else {
+            return {
+                success: false,
+                message: 'Launch not found or not updated'
+            };
+        }
+    } catch (error) {
         console.error('Error updating launch:', error);
-        return false; // or throw an error or handle it in an appropriate way
-      }
-      
+        throw error;
+    }
 }
+const SPACE_URL = "https://api.spacexdata.com/v5/launches/query"
 
 
-async function getAllLaunches() {
-    const latestLaunch = await launches.find({})
-    return latestLaunch
+const loadLaunchData = async () => {
+  const response= await axios.post(SPACE_URL, {
+        query: {},
+        pagination:false,
+        options: [{
+            populate: [{
+                    path: 'rocket',
+                    select: {
+                        name: 1
+                    }
+                },
+                {
+                    path: 'payloads',
+                    select: {
+                        'customers': 1
+                    }
+                }
+            ]
+        }]
+    })
+    const loadData= response.data.docs
+    for(const  launchDoc of loadData){
+        const payloads=launchDoc['payloads']
+        const customers=payloads.flatMap((payload)=>{
+            return payload['customers']
+        })
 
-  
+        const launch={
+            flightNumber :launchDoc['flight_number'] ,
+            mission:launchDoc['name'],
+            rocket:launchDoc['rocket']['name'],
+            lunchDate:launchDoc['date_local'],
+            upcoming:launchDoc['upcoming'],
+            success:launchDoc['success'],
+            customer:customers,
+            
+            
+        }
+        console.log(launch.flightNumber,launch.mission)
+    }
+
     
 }
 
+
+
 module.exports = {
+    loadLaunchData,
     addNewLaunches,
     getAllLaunches,
     existsLaunchWithId,
